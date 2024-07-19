@@ -107,11 +107,6 @@ static unsigned int CreateShaders(const std::string& vertexShader, const std::st
 
 int main()
 {
-    // install git, cmake, g++
-    // https://www.pragmaticlinux.com/2022/05/how-to-install-build-essential-on-fedora/ - dependencies
-    // install this - sudo dnf install glew-devel SDL2-devel SDL2_image-devel glm-devel freetype-devel - https://en.wikibooks.org/wiki/OpenGL_Programming/Installation/Linux
-    // https://stackoverflow.com/questions/17768008/how-to-build-install-glfw-3-and-use-it-in-a-linux-project/17772217#17772217 - install glfw with the flag shared libraries on
-
     GLFWwindow* window;
 
     /* Initialize the library */
@@ -152,43 +147,33 @@ int main()
     };
 
     unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions) * 2, positions, GL_STATIC_DRAW);
+    GLCall(glGenBuffers(1, &buffer));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+    GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(positions) * 2, positions, GL_STATIC_DRAW));
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    GLCall(glEnableVertexAttribArray(0));
+    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
 
     unsigned int ibo;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    GLCall(glGenBuffers(1, &ibo));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
 
 
     ShaderProgramSource source = ParseShader("shaders/simpleShader.shader");
-   /* std::cout << "VERTEX" << '\n';
-    std::cout << source.VertexSource << '\n';
-    std::cout << "FRAGMENT" << '\n';
-    std::cout << source.FragmentSource << '\n';*/
 
 
     unsigned int programID = CreateShaders(source.VertexSource, source.FragmentSource);
-    glUseProgram(programID);
+    GLCall(glUseProgram(programID));
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
+        GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
 
         GLCall(glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr));
-
-        // glBegin(GL_TRIANGLES);
-        // glVertex2f(-0.5f,-0.5f);
-        // glVertex2f(0.0f,  0.5f);
-        // glVertex2f(0.5f, -0.5f);       
-        // glEnd();
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
