@@ -9,32 +9,20 @@
 #include <string>
 #include <sstream>
 
+#include "Renderer.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
+
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-#define ASSERT(x) if (!(x)) __debugbreak();
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__));
-
-
-static void GLClearError() {
-    while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line) {
-    while (GLenum error = glGetError()) {
-        std::cout << "[OpenGL Error] (" << error << "): "<< function << " | " << file << ":" << line << '\n';
-        return false;
-    }
-    return true;
-}
-
+// Struct to save the shader
 struct ShaderProgramSource {
     std::string VertexSource;
     std::string FragmentSource;
 };
 
+// Loads the shader file and parses it into the shader struct
 static ShaderProgramSource ParseShader(const std::string& filepath) {
     std::ifstream stream(filepath);
 
@@ -63,6 +51,7 @@ static ShaderProgramSource ParseShader(const std::string& filepath) {
     return { ss[0].str(), ss[1].str() };
 }
 
+// 
 static unsigned int CompileShader(unsigned int type, const std::string& source) {
     unsigned int id = glCreateShader(type);
     const char* src = source.c_str();
@@ -113,6 +102,11 @@ int main()
     if (!glfwInit())
         return -1;
 
+    // Sets the OpenGl version to 3 and sets the OpenGL profile to CORE
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello World", NULL, NULL);
     if (!window)
@@ -124,7 +118,8 @@ int main()
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    glfwSwapInterval(1);
+    // Sets the refresh rate to the monitor refresh rate
+    glfwSwapInterval(2);
 
     GLenum err;
     err = glewInit();
@@ -135,69 +130,93 @@ int main()
     }
 
     std::cout << glGetString(GL_VERSION) << std::endl;
-
-    float positions[] = {
-        -0.5f, -0.5f, // 0
-         0.5f, -0.5f, // 1
-         0.5f,  0.5f, // 2
-        -0.5f,  0.5f  // 3
-    };
-
-    unsigned int indices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    unsigned int buffer;
-    GLCall(glGenBuffers(1, &buffer));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(positions) * 2, positions, GL_STATIC_DRAW));
-
-    GLCall(glEnableVertexAttribArray(0));
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
-
-    unsigned int ibo;
-    GLCall(glGenBuffers(1, &ibo));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
-
-
-    ShaderProgramSource source = ParseShader("shaders/simpleShader.shader");
-
-
-    unsigned int programID = CreateShaders(source.VertexSource, source.FragmentSource);
-    GLCall(glUseProgram(programID));
-
-    GLCall(int location = glGetUniformLocation(programID, "u_Color"));
-    ASSERT(location != -1);
-
-    float r = 0.0f;
-    float increment = 0.05f;
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
-        GLCall(glClear(GL_COLOR_BUFFER_BIT));
+        // Array for the squares vertices
+        float square[] = {
+            -0.5f, -0.5f, // 0
+             0.5f, -0.5f, // 1
+             0.5f,  0.5f, // 2
+            -0.5f,  0.5f  // 3
+        };
+
+        float triangle[] = {
+           -0.95f, 0.0f, // 0
+           -0.55f, 0.75f, // 1
+           -0.55f, 0.0f, // 2
+        };
+
+        // Draw order for the vertices of the square
+        unsigned int squareIndices[] = {
+            0, 1, 2,
+            2, 3, 0
+        };
+
+        unsigned int triangleIndices[] = {
+            0, 1, 2,
+        };
+
+        // Creates a Vertex Array Object and binds it to a Vertex Array
+        unsigned int vao;
+        GLCall(glGenVertexArrays(1, &vao));
+        GLCall(glBindVertexArray(vao));
 
 
-        GLCall(glUniform4f(location, r, 0.8f, 0.8f, 1.0f));
-        GLCall(glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr));
+        VertexBuffer vb(square, sizeof(square) * 2);
 
-        if (r > 1.0f) 
-            increment = -0.05f;
-        else if (r < 0.0f) 
-            increment = 0.05f;
+        GLCall(glEnableVertexAttribArray(0));
+        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
 
-        r += increment;
-      
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+        IndexBuffer ib(squareIndices, sizeof(squareIndices));
 
-        /* Poll for and process events */
-        glfwPollEvents();
+
+        ShaderProgramSource source = ParseShader("shaders/simpleShader.shader");
+
+
+        unsigned int programID = CreateShaders(source.VertexSource, source.FragmentSource);
+        GLCall(glUseProgram(programID));
+
+        GLCall(int location = glGetUniformLocation(programID, "u_Color"));
+        ASSERT(location != -1);
+        GLCall(glUniform4f(location, 0.8f, 0.8f, 0.8f, 1.0f));
+
+        GLCall(glBindVertexArray(0));
+        GLCall(glUseProgram(0));
+        GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+
+        float r = 0.0f;
+        float increment = 0.05f;
+        /* Loop until the user closes the window */
+        while (!glfwWindowShouldClose(window))
+        {
+            /* Render here */
+            GLCall(glClear(GL_COLOR_BUFFER_BIT));
+
+            GLCall(glUseProgram(programID));
+            GLCall(glUniform4f(location, r, 0.8f, 0.8f, 1.0f));
+
+            GLCall(glBindVertexArray(vao));
+            ib.Bind();
+
+            GLCall(glDrawElements(GL_TRIANGLES, sizeof(squareIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr));
+
+            if (r > 1.0f)
+                increment = -0.05f;
+            else if (r < 0.0f)
+                increment = 0.05f;
+
+            r += increment;
+
+            /* Swap front and back buffers */
+            glfwSwapBuffers(window);
+
+            /* Poll for and process events */
+            glfwPollEvents();
+        }
+
+        glDeleteProgram(programID);
     }
-
-    glDeleteProgram(programID);
 
     glfwTerminate();
     return 0;
