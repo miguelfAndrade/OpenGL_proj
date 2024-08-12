@@ -120,7 +120,8 @@ int main()
     glfwMakeContextCurrent(window);
 
     // Sets the refresh rate to the monitor refresh rate
-    glfwSwapInterval(2);
+    // glfwSwapInterval(2); // 120Hz
+    glfwSwapInterval(1); // 60Hz
 
     GLenum err;
     err = glewInit();
@@ -166,7 +167,7 @@ int main()
         VertexBuffer vb(square, sizeof(square) * 2);
         VertexBufferLayout layout;
         //layout.Push<float>(2);
-        layout.Push(GL_FLOAT, 0);
+        layout.Push(GL_FLOAT, 2);
         va.AddBuffer(vb, layout);
 
         IndexBuffer ib(squareIndices, sizeof(squareIndices));
